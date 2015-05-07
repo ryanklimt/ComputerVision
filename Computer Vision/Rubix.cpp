@@ -15,6 +15,8 @@ using namespace std;
 Mat src, src_gray;
 int thresh = 80;
 int canny = 0;
+int sizeContours = 100;
+int groupTolerance = 50;
 
 void thresh_callback(int, void*)
 {
@@ -46,7 +48,8 @@ void thresh_callback(int, void*)
 	vector<Rect> boundRect(contours.size());
 	vector<Point2f> center(contours.size());
 	vector<Moments> contArea(contours.size());
-	vector<float>radius( contours.size() );
+	vector<float> radius(contours.size());
+	vector<vector<int>> cube(3, vector<int>(9));
 
 	for(int i = 0; i<contours.size(); i++)
 	{ 
@@ -60,7 +63,7 @@ void thresh_callback(int, void*)
 	Mat drawing = Mat::zeros(threshold_output.size(), CV_8UC3);
 	for(int i = 0; i<contours.size(); i++)
 	{
-		if(contArea[i].m00>1000)
+		if(contArea[i].m00>sizeContours)
 		{
 			Scalar color = mean(src(boundingRect(contours[i])));
 			ostringstream oss;
@@ -69,7 +72,69 @@ void thresh_callback(int, void*)
 			putText(drawing, tmpLabel, center[i], FONT_HERSHEY_PLAIN, 2, Scalar(255,255,255));
 			drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
 			//rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+
+			bool isAdded = false;
+
+			for(int j = 0; j < 3; j++)
+			{
+				if(cube[j][0] != NULL)
+				{
+					int width = boundRect[cube[j][0]].width;
+					int height = boundRect[cube[j][0]].height;
+					int dif = abs(boundRect[i].width - width) + abs(boundRect[i].height - height);
+					if(dif < groupTolerance)
+					{
+						for(int k = 0; k < 9; k++)
+						{
+							if(cube[j][k] == NULL)
+							{
+								cube[j][k] = i;
+								isAdded = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if(!isAdded)
+			{
+				for(int j = 0; j < 3; j++)
+				{
+					if(cube[j][0] == NULL)
+					{
+						cube[j][0] = i;
+						isAdded = true;
+						break;
+					}
+				}
+			}
+			if(!isAdded)
+			{
+				for(int j = 0; j < 3; j++)
+				{
+					for(int k = 0; k < 9; k++)
+					{
+						if(cube[j][k] == NULL)
+						{
+							cube[j][k] = i;
+							isAdded = true;
+							break;
+						}
+					}
+					if(isAdded) break;
+				}
+			}
 		}
+	}
+
+	for(int i = 0; i < 3; i++)
+	{
+		for(int j = 0; j < 9; j++)
+		{
+			printf("%d ",cube[i][j]);
+		}
+		printf("\n");
 	}
 
 	/// Show in a window
@@ -96,6 +161,8 @@ int main( int argc, char** argv )
 
 	createTrackbar( " Threshold:", "Source", &thresh, 255, thresh_callback );
 	createTrackbar( " Canny:", "Source", &canny, 255, thresh_callback );
+	createTrackbar( " Size:", "Source", &sizeContours, 10000, thresh_callback );
+	createTrackbar( " Tolerance:", "Source", &groupTolerance, 100, thresh_callback );
 	thresh_callback( 0, 0 );
 
 	waitKey(0);
