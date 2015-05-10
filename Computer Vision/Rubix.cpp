@@ -13,35 +13,31 @@ using namespace cv;
 using namespace std;
 
 Mat src, src_gray;
-int thresh = 80;
-int canny = 0;
+int thresh = 65;
+int canny = 75;
 int sizeContours = 100;
 int groupTolerance = 50;
+int difSlope = 5;
 
 void thresh_callback(int, void*)
 {
-	Mat threshold_output, canny_output, edge_output;
+	Mat threshold_output, dst, cdst;
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	vector<Vec4i> lines;
-
-	if(canny==0) canny=1;
-
-	/// Detect edges using Canny
-	Canny(src, canny_output, canny, 255, 3);
-	cvtColor(canny_output, edge_output, CV_GRAY2BGR);
-	HoughLinesP(canny_output, lines, 1, CV_PI/180, canny, 0, 0);
-	for( size_t i = 0; i < lines.size(); i++ )
-	{
-		Vec4i l = lines[i];
-		line( edge_output, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 3, CV_AA);
-	}
+	vector<Vec2f> lines;
 
 	/// Detect edges using Threshold
 	threshold(src_gray, threshold_output, thresh, 255, THRESH_BINARY);
 
+	/// Detect lines using Canny
+	if(canny == 0) canny=1;
+	Canny(src, dst, 50, 200, 3);
+	cvtColor(dst, cdst, CV_GRAY2BGR);
+	HoughLines(dst, lines, 1, CV_PI/180, canny, 0, 0);
+
 	/// Find contours
 	findContours(threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+	//findContours(lines, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
 	/// Approximate contours to polygons + get bounding rects
 	vector<vector<Point>> contours_poly(contours.size());
@@ -59,6 +55,21 @@ void thresh_callback(int, void*)
 		minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
 	}
 
+	// Draw lines
+	for(size_t i = 0; i < lines.size(); i++)
+	{
+		float rho = lines[i][0], theta = lines[i][1];
+        Point pt1, pt2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        pt1.x = cvRound(x0 + 1000*(-b));
+        pt1.y = cvRound(y0 + 1000*(a));
+        pt2.x = cvRound(x0 - 1000*(-b));
+        pt2.y = cvRound(y0 - 1000*(a));
+        line(cdst, pt1, pt2, Scalar(0,0,255), 3, CV_AA);
+		//printf("Line[%d]: %d,%d,%d,%d\n", i, pt1.x, pt1.y, pt2.x, pt2.y);
+	}
+
 	/// Draw polygonal contour + bonding rects
 	Mat drawing = Mat::zeros(threshold_output.size(), CV_8UC3);
 	for(int i = 0; i<contours.size(); i++)
@@ -70,8 +81,17 @@ void thresh_callback(int, void*)
 			oss<< i;
 			string tmpLabel = oss.str();
 			putText(drawing, tmpLabel, center[i], FONT_HERSHEY_PLAIN, 2, Scalar(255,255,255));
+
+			approxPolyDP(Mat(contours[i]), contours_poly[i], arcLength(Mat(contours[i]), true)*0.02, true);
 			drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
 			//rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+
+			printf("Line[%d]:\n", i);
+			for(int j = 0; j<contours_poly[0].size(); j++)
+			{
+				printf("%d ", contours_poly[i][j]);
+			}
+			printf("\n");
 
 			bool isAdded = false;
 
@@ -136,13 +156,14 @@ void thresh_callback(int, void*)
 		}
 		printf("\n");
 	}
+	printf("\n\n");
 
 	/// Show in a window
 	namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
 	imshow( "Contours", drawing );
 
 	namedWindow( "Edges", CV_WINDOW_AUTOSIZE );
-	imshow( "Edges", edge_output );
+	imshow( "Edges", cdst );
 }
 
 int main( int argc, char** argv )
@@ -163,6 +184,7 @@ int main( int argc, char** argv )
 	createTrackbar( " Canny:", "Source", &canny, 255, thresh_callback );
 	createTrackbar( " Size:", "Source", &sizeContours, 10000, thresh_callback );
 	createTrackbar( " Tolerance:", "Source", &groupTolerance, 100, thresh_callback );
+	createTrackbar( " Slope:", "Source", &difSlope, 100, thresh_callback );
 	thresh_callback( 0, 0 );
 
 	waitKey(0);
