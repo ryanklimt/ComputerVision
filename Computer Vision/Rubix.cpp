@@ -2,10 +2,8 @@
 
 #include <iostream>
 #include <string>
-//#include <stdio.h>
 #include <windows.h>
 #include "stdafx.h"
-//#include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
@@ -16,8 +14,27 @@ Mat src, src_gray;
 int thresh = 65;
 int canny = 75;
 int sizeContours = 100;
-int groupTolerance = 50;
-int difSlope = 5;
+int groupTolerance = 25;
+int difSlope = 125;
+
+void print_cube(vector<vector<int>> cube)
+{
+	for(int i = 0; i < 3; i++)
+	{
+		printf("Face %d\n",i);
+		for(int j = 0; j < 9; j++)
+		{
+			printf("%d ",cube[i][j]);
+		}
+		printf("\n\n");
+	}
+	printf("\n\n");
+}
+
+bool comparator(Point2f a, Point2f b)
+{
+	return a.x<b.x;
+}
 
 void thresh_callback(int, void*)
 {
@@ -37,7 +54,6 @@ void thresh_callback(int, void*)
 
 	/// Find contours
 	findContours(threshold_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-	//findContours(lines, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
 	/// Approximate contours to polygons + get bounding rects
 	vector<vector<Point>> contours_poly(contours.size());
@@ -46,16 +62,27 @@ void thresh_callback(int, void*)
 	vector<Moments> contArea(contours.size());
 	vector<float> radius(contours.size());
 	vector<vector<int>> cube(3, vector<int>(9));
+	vector<vector<float>> slopes(contours.size(), vector<float>(4));
 
-	for(int i = 0; i<contours.size(); i++)
+	/// Get contour information
+	for(size_t i = 0; i < contours.size(); i++)
 	{ 
 		contArea[i] = moments(contours[i], false);
-		approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
+		approxPolyDP(Mat(contours[i]), contours_poly[i], 10, true);
 		boundRect[i] = boundingRect( Mat(contours_poly[i]) );
 		minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
 	}
 
-	// Draw lines
+	/// Set default NULL values for cube
+	for(size_t i = 0; i < cube.size(); i++)
+	{
+		for(size_t j = 0; j < cube[0].size(); j++)
+		{
+			cube[i][j] = -1;
+		}
+	}
+
+	/// Draw hough lines
 	for(size_t i = 0; i < lines.size(); i++)
 	{
 		float rho = lines[i][0], theta = lines[i][1];
@@ -67,12 +94,11 @@ void thresh_callback(int, void*)
         pt2.x = cvRound(x0 - 1000*(-b));
         pt2.y = cvRound(y0 - 1000*(a));
         line(cdst, pt1, pt2, Scalar(0,0,255), 3, CV_AA);
-		//printf("Line[%d]: %d,%d,%d,%d\n", i, pt1.x, pt1.y, pt2.x, pt2.y);
 	}
 
-	/// Draw polygonal contour + bonding rects
+	/// Drawing for contour lines
 	Mat drawing = Mat::zeros(threshold_output.size(), CV_8UC3);
-	for(int i = 0; i<contours.size(); i++)
+	for(size_t i = 0; i < contours.size(); i++)
 	{
 		if(contArea[i].m00>sizeContours)
 		{
@@ -81,32 +107,63 @@ void thresh_callback(int, void*)
 			oss<< i;
 			string tmpLabel = oss.str();
 			putText(drawing, tmpLabel, center[i], FONT_HERSHEY_PLAIN, 2, Scalar(255,255,255));
-
-			approxPolyDP(Mat(contours[i]), contours_poly[i], arcLength(Mat(contours[i]), true)*0.02, true);
 			drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
-			//rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
 
-			printf("Line[%d]:\n", i);
-			for(int j = 0; j<contours_poly[0].size(); j++)
+			vector<Point2f> top, bot;
+			for(size_t j=0; j < contours_poly[i].size(); j++)
 			{
-				printf("%d ", contours_poly[i][j]);
+				if(contours_poly[i][j].y < center[i].y)
+				{
+					top.push_back(contours_poly[i][j]);
+				} else {
+					bot.push_back(contours_poly[i][j]);
+				}
 			}
-			printf("\n");
+			sort(top.begin(),top.end(),comparator);
+			sort(bot.begin(),bot.end(),comparator);
+
+			Point2f tl = top[0];
+			Point2f tr = top[top.size()-1];
+			Point2f bl = bot[0];
+			Point2f br = bot[top.size()-1];
+			
+			if(tr.x-tl.x) {
+				slopes[i][0] = (tr.y-tl.y)/(tr.x-tl.x);
+			}
+			if(br.x-bl.x) {
+				slopes[i][1] = (br.y-bl.y)/(br.x-bl.x);
+			}
+			if(tr.x-br.x) {
+				slopes[i][2] = (tr.y-br.y)/(tr.x-br.x);
+			}
+			if(tl.x-bl.x) {
+				slopes[i][3] = (tl.y-bl.y)/(tl.x-bl.x);
+			}
 
 			bool isAdded = false;
-
-			for(int j = 0; j < 3; j++)
+			for(size_t j=0; j<3; j++)
 			{
-				if(cube[j][0] != NULL)
+				if (!isAdded && cube[j][0] != -1 && cube[j][0] != i)
 				{
-					int width = boundRect[cube[j][0]].width;
-					int height = boundRect[cube[j][0]].height;
-					int dif = abs(boundRect[i].width - width) + abs(boundRect[i].height - height);
-					if(dif < groupTolerance)
+					float slopeDifference = 0;
+					for(size_t k=0; k<4; k++)
 					{
-						for(int k = 0; k < 9; k++)
+						float mySlope = slopes[i][k];
+						float compareSlope = slopes[cube[j][0]][k];
+						slopeDifference += (mySlope - compareSlope);
+					}
+
+					float myWidth = boundRect[i].width;
+					float myHeight = boundRect[i].height;
+					float compareWidth = boundRect[cube[j][0]].width;
+					float compareHeight = boundRect[cube[j][0]].height;
+					float widthDifference = abs(myWidth - compareWidth);
+					float heightDifference = abs(myHeight - compareHeight);
+					if(widthDifference < groupTolerance && heightDifference < groupTolerance && slopeDifference < difSlope)
+					{
+						for(size_t k=0; k<cube[j].size(); k++)
 						{
-							if(cube[j][k] == NULL)
+							if(!isAdded && cube[j][k] == -1)
 							{
 								cube[j][k] = i;
 								isAdded = true;
@@ -116,12 +173,11 @@ void thresh_callback(int, void*)
 					}
 				}
 			}
-
 			if(!isAdded)
 			{
-				for(int j = 0; j < 3; j++)
+				for(size_t j=0; j<3; j++)
 				{
-					if(cube[j][0] == NULL)
+					if(!isAdded && cube[j][0] == -1)
 					{
 						cube[j][0] = i;
 						isAdded = true;
@@ -131,32 +187,22 @@ void thresh_callback(int, void*)
 			}
 			if(!isAdded)
 			{
-				for(int j = 0; j < 3; j++)
+				for(size_t j=0; j<cube[2].size(); j++)
 				{
-					for(int k = 0; k < 9; k++)
+					if(!isAdded && cube[2][j] == -1)
 					{
-						if(cube[j][k] == NULL)
-						{
-							cube[j][k] = i;
-							isAdded = true;
-							break;
-						}
+						cube[2][j] = i;
+						isAdded = true;
+						break;
 					}
-					if(isAdded) break;
 				}
 			}
 		}
+
 	}
 
-	for(int i = 0; i < 3; i++)
-	{
-		for(int j = 0; j < 9; j++)
-		{
-			printf("%d ",cube[i][j]);
-		}
-		printf("\n");
-	}
-	printf("\n\n");
+	/// Output cube to log
+	print_cube(cube);
 
 	/// Show in a window
 	namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
@@ -169,7 +215,7 @@ void thresh_callback(int, void*)
 int main( int argc, char** argv )
 {
 	/// Load source image and convert it to gray
-	src = imread("images/rubix.png");
+	src = imread("images/rubix1.png");
 
 	/// Convert image to gray and blur it
 	cvtColor( src, src_gray, CV_BGR2GRAY );
@@ -184,7 +230,7 @@ int main( int argc, char** argv )
 	createTrackbar( " Canny:", "Source", &canny, 255, thresh_callback );
 	createTrackbar( " Size:", "Source", &sizeContours, 10000, thresh_callback );
 	createTrackbar( " Tolerance:", "Source", &groupTolerance, 100, thresh_callback );
-	createTrackbar( " Slope:", "Source", &difSlope, 100, thresh_callback );
+	createTrackbar( " Slope:", "Source", &difSlope, 255, thresh_callback );
 	thresh_callback( 0, 0 );
 
 	waitKey(0);

@@ -22,16 +22,13 @@
     <None Include="images\tu.jpg">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="images\rubix.jpg">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="images\rubix2.jpg">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="images\rubix3.jpg">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="images\rubix.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="images\rubix1.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="images\rubix3.png">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

@@ -77,10 +77,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="images\boldt.jpg" />
-    <None Include="images\rubix.jpg" />
     <None Include="images\rubix.png" />
-    <None Include="images\rubix2.jpg" />
-    <None Include="images\rubix3.jpg" />
+    <None Include="images\rubix1.png" />
+    <None Include="images\rubix3.png" />
     <None Include="images\tu.jpg" />
     <None Include="ReadMe.txt" />
   </ItemGroup>
