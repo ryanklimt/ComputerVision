@@ -1,4 +1,4 @@
-﻿Build started 5/14/2015 8:21:22 PM.
+﻿Build started 5/14/2015 8:58:35 PM.
      1>Project "F:\Computer Vision\Computer Vision\Computer Vision.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Debug\Computer Vision.unsuccessfulbuild" because "AlwaysCreate" was specified.
@@ -30,4 +30,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.87
+Time Elapsed 00:00:01.62
