@@ -14,17 +14,17 @@ Mat src, src_gray;
 int thresh = 65;
 int canny = 75;
 int sizeContours = 100;
-int groupTolerance = 25;
-int difSlope = 125;
+int groupTollerance = 25;
+int difSlope = 10;
 
 void print_cube(vector<vector<int>> cube)
 {
 	for(int i = 0; i < 3; i++)
 	{
 		printf("Face %d\n",i);
-		for(int j = 0; j < 9; j++)
+		for(int j = 0; j < cube[i].size(); j++)
 		{
-			printf("%d ",cube[i][j]);
+			if(cube[i][j]!=-1) printf("%d ",cube[i][j]);
 		}
 		printf("\n\n");
 	}
@@ -61,22 +61,22 @@ void thresh_callback(int, void*)
 	vector<Point2f> center(contours.size());
 	vector<Moments> contArea(contours.size());
 	vector<float> radius(contours.size());
-	vector<vector<int>> cube(3, vector<int>(9));
+	vector<vector<int>> cube(3, vector<int>(25));
 	vector<vector<float>> slopes(contours.size(), vector<float>(4));
 
 	/// Get contour information
 	for(size_t i = 0; i < contours.size(); i++)
 	{ 
 		contArea[i] = moments(contours[i], false);
-		approxPolyDP(Mat(contours[i]), contours_poly[i], 10, true);
+		approxPolyDP( Mat(contours[i]), contours_poly[i], 3, true );
 		boundRect[i] = boundingRect( Mat(contours_poly[i]) );
 		minEnclosingCircle( (Mat)contours_poly[i], center[i], radius[i] );
 	}
 
 	/// Set default NULL values for cube
-	for(size_t i = 0; i < cube.size(); i++)
+	for(size_t i = 0; i < 3; i++)
 	{
-		for(size_t j = 0; j < cube[0].size(); j++)
+		for(size_t j = 0; j < cube[i].size(); j++)
 		{
 			cube[i][j] = -1;
 		}
@@ -125,7 +125,7 @@ void thresh_callback(int, void*)
 			Point2f tl = top[0];
 			Point2f tr = top[top.size()-1];
 			Point2f bl = bot[0];
-			Point2f br = bot[top.size()-1];
+			Point2f br = bot[bot.size()-1];
 			
 			if(tr.x-tl.x) {
 				slopes[i][0] = (tr.y-tl.y)/(tr.x-tl.x);
@@ -146,7 +146,7 @@ void thresh_callback(int, void*)
 				if (!isAdded && cube[j][0] != -1 && cube[j][0] != i)
 				{
 					float slopeDifference = 0;
-					for(size_t k=0; k<4; k++)
+					for(size_t k=0; k<3; k++)
 					{
 						float mySlope = slopes[i][k];
 						float compareSlope = slopes[cube[j][0]][k];
@@ -159,7 +159,7 @@ void thresh_callback(int, void*)
 					float compareHeight = boundRect[cube[j][0]].height;
 					float widthDifference = abs(myWidth - compareWidth);
 					float heightDifference = abs(myHeight - compareHeight);
-					if(widthDifference < groupTolerance && heightDifference < groupTolerance && slopeDifference < difSlope)
+					if(widthDifference < groupTollerance && heightDifference < groupTollerance && slopeDifference < difSlope)
 					{
 						for(size_t k=0; k<cube[j].size(); k++)
 						{
@@ -208,14 +208,17 @@ void thresh_callback(int, void*)
 	namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
 	imshow( "Contours", drawing );
 
-	namedWindow( "Edges", CV_WINDOW_AUTOSIZE );
-	imshow( "Edges", cdst );
+	namedWindow( " Edges", CV_WINDOW_AUTOSIZE );
+	imshow( "Edges", threshold_output );
+
+	namedWindow( "HoughLines", CV_WINDOW_AUTOSIZE );
+	imshow( "HoughLines", cdst );
 }
 
 int main( int argc, char** argv )
 {
 	/// Load source image and convert it to gray
-	src = imread("images/rubix1.png");
+	src = imread("images/rubix.png");
 
 	/// Convert image to gray and blur it
 	cvtColor( src, src_gray, CV_BGR2GRAY );
@@ -228,8 +231,8 @@ int main( int argc, char** argv )
 
 	createTrackbar( " Threshold:", "Source", &thresh, 255, thresh_callback );
 	createTrackbar( " Canny:", "Source", &canny, 255, thresh_callback );
-	createTrackbar( " Size:", "Source", &sizeContours, 10000, thresh_callback );
-	createTrackbar( " Tolerance:", "Source", &groupTolerance, 100, thresh_callback );
+	createTrackbar( " Min Size:", "Source", &sizeContours, 10000, thresh_callback );
+	createTrackbar( " Tollerance:", "Source", &groupTollerance, 100, thresh_callback );
 	createTrackbar( " Slope:", "Source", &difSlope, 255, thresh_callback );
 	thresh_callback( 0, 0 );
 

@@ -28,6 +28,9 @@
     <None Include="images\rubix1.png">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="images\rubix2.png">
+      <Filter>Resource Files</Filter>
+    </None>
     <None Include="images\rubix3.png">
       <Filter>Resource Files</Filter>
     </None>

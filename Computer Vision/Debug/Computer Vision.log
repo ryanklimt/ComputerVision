@@ -1,11 +1,11 @@
-﻿Build started 5/12/2015 8:36:21 PM.
+﻿Build started 5/14/2015 8:21:22 PM.
      1>Project "F:\Computer Vision\Computer Vision\Computer Vision.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Debug\Computer Vision.unsuccessfulbuild" because "AlwaysCreate" was specified.
        ClCompile:
-         E:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yc"StdAfx.h" /Fp"Debug\Computer Vision.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Rubix.cpp stdafx.cpp
-         stdafx.cpp
+         E:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yc"StdAfx.h" /Fp"Debug\Computer Vision.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt Rubix.cpp
          Rubix.cpp
+     1>f:\computer vision\computer vision\rubix.cpp(25): warning C4018: '<' : signed/unsigned mismatch
      1>f:\computer vision\computer vision\rubix.cpp(156): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
      1>f:\computer vision\computer vision\rubix.cpp(157): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
      1>f:\computer vision\computer vision\rubix.cpp(158): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
@@ -30,4 +30,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:01.52
+Time Elapsed 00:00:01.87
